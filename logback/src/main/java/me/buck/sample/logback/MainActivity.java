@@ -15,8 +15,13 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        long start = System.currentTimeMillis();
+        logger.error("start");
         for (int i = 0; i < 10000; i++) {
             logger.debug("hello hellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohellohello {} {}", "buck", i);
         }
+        logger.error("end");
+        long end = System.currentTimeMillis();
+        logger.error("end - start = {}", end-start);
     }
 }

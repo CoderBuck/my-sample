@@ -4,6 +4,7 @@ import android.app.Application;
 
 import org.slf4j.LoggerFactory;
 
+import ch.qos.logback.classic.AsyncAppender;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.android.LogcatAppender;
@@ -33,41 +34,35 @@ public class App extends Application {
         if (sm != null) {
             sm.add(new InfoStatus("Setting up default configuration.", lc));
         }
-        LogcatAppender appender = new LogcatAppender();
-        appender.setContext(lc);
-        appender.setName("logcat");
+
+
+        PatternLayoutEncoder tag = new PatternLayoutEncoder();
+        tag.setContext(lc);
+        tag.setPattern("%logger{0}");
+        tag.start();
 
         // We don't need a trailing new-line character in the pattern
         // because logcat automatically appends one for us.
-        PatternLayoutEncoder pl = new PatternLayoutEncoder();
-        pl.setContext(lc);
-        pl.setPattern("%msg");
-        pl.start();
+        PatternLayoutEncoder msg = new PatternLayoutEncoder();
+        msg.setContext(lc);
+        msg.setPattern("%msg");
+        msg.start();
 
-        PatternLayoutEncoder tagPl = new PatternLayoutEncoder();
-        tagPl.setContext(lc);
-        tagPl.setPattern("%logger{20}");
-        tagPl.start();
-
-        appender.setTagEncoder(tagPl);
-        appender.setEncoder(pl);
+        LogcatAppender appender = new LogcatAppender();
+        appender.setContext(lc);
+        appender.setName("logcat");
+        appender.setTagEncoder(tag);
+        appender.setEncoder(msg);
         appender.start();
 
-        PatternLayoutEncoder encoder1 = new PatternLayoutEncoder();
-        encoder1.setContext(lc);
-        encoder1.setPattern("%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger{0} - %msg%n");
-        encoder1.start();
 
-        FileAppender<ILoggingEvent> fileAppender = new FileAppender<>();
-        fileAppender.setContext(lc);
-        fileAppender.setFile(getFilesDir().getAbsolutePath() + "/log/app.log");
-        fileAppender.setEncoder(encoder1);
-//        fileAppender.start();
+
+        PatternLayoutEncoder encoder = new PatternLayoutEncoder();
+        encoder.setContext(lc);
+        encoder.setPattern("%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger{0} - %msg%n");
+        encoder.start();
 
         RollingFileAppender<ILoggingEvent> rollingFileAppender = new RollingFileAppender<ILoggingEvent>();
-        rollingFileAppender.setAppend(true);
-        rollingFileAppender.setContext(lc);
-//        rollingFileAppender.setFile(getFilesDir().getAbsolutePath() + "/rolling-log/app.log");
 
         SizeAndTimeBasedRollingPolicy<ILoggingEvent> rollingPolicy = new SizeAndTimeBasedRollingPolicy<ILoggingEvent>();
         rollingPolicy.setFileNamePattern(getFilesDir().getAbsolutePath() + "/app[%i]-%d.log");
@@ -77,22 +72,27 @@ public class App extends Application {
         rollingPolicy.setParent(rollingFileAppender);  // parent and context required!
         rollingPolicy.setContext(lc);
         rollingPolicy.start();
+
+        rollingFileAppender.setAppend(true);
+        rollingFileAppender.setContext(lc);
         rollingFileAppender.setRollingPolicy(rollingPolicy);
-
-        PatternLayoutEncoder encoder = new PatternLayoutEncoder();
-        encoder.setPattern("%logger{35} - %msg%n");
-        encoder.setContext(lc);
-        encoder.start();
-
         rollingFileAppender.setEncoder(encoder);
         rollingFileAppender.start();
+
+        AsyncAppender asyncAppender = new AsyncAppender();
+        asyncAppender.setContext(lc);
+        asyncAppender.setName("ASYNC");
+        asyncAppender.addAppender(rollingFileAppender);
+        asyncAppender.start();
 
 
         Logger rootLogger = lc.getLogger(Logger.ROOT_LOGGER_NAME);
         rootLogger.addAppender(appender);
-//        rootLogger.addAppender(fileAppender);
         rootLogger.addAppender(rollingFileAppender);
+//        rootLogger.addAppender(asyncAppender);
 
         StatusPrinter.print(lc);
     }
+
+
 }
